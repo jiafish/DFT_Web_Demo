@@ -10,49 +10,72 @@ import toast from '../../shared/components/toast.js';
 import './userInfo.css';
 
 const UserInfoModule = {
-  async init(container, { header, footer, query }) {
-    this.container = container;
-    this.header = header;
-    this.footer = footer;
-    this.query = query;
-    this.engine = new UserInfoEngine(container);
-    this.currentState = 'start'; // 'start' | 'question' | 'intermediate' | 'complete'
-    this.currentPart = 'part1'; // 'part1' | 'part2'
-    
-    // 設定引擎回調
-    this.engine.onNext = (nextId) => {
-      this.handleNext(nextId);
-    };
-    
-    this.engine.onComplete = () => {
-      this.handleComplete();
-    };
-    
-    // 綁定 footer 按鈕
-    const footerBtn = footer.querySelector('#footer-primary-btn');
-    if (footerBtn) {
-      footerBtn.textContent = '下一步';
-      footerBtn.onclick = () => {
-        this.handleNextButton();
-      };
-    }
-    
-    // 檢查是否從 AD8 回來
-    if (query.resume) {
-      // 從指定題目繼續
-      await this.startFromQuestion(query.resume);
-    } else {
-      // 檢查是否有草稿
-      await this.engine.loadDraft();
-      const answers = this.engine.getAnswers();
-      const hasDraft = Object.keys(answers).length > 0;
+  async init(container, { header, footer, query = {} }) {
+    try {
+      if (!container) {
+        console.error('UserInfo: container is null or undefined');
+        return;
+      }
       
-      if (hasDraft) {
-        // 有草稿，繼續問卷
-        await this.start();
+      this.container = container;
+      this.header = header;
+      this.footer = footer;
+      this.query = query || {};
+      
+      // 初始化引擎
+      this.engine = new UserInfoEngine(container);
+      this.currentState = 'start'; // 'start' | 'question' | 'intermediate' | 'complete'
+      this.currentPart = 'part1'; // 'part1' | 'part2'
+      
+      // 設定引擎回調
+      this.engine.onNext = (nextId) => {
+        this.handleNext(nextId);
+      };
+      
+      this.engine.onComplete = () => {
+        this.handleComplete();
+      };
+      
+      // 綁定 footer 按鈕
+      if (footer) {
+        const footerBtn = footer.querySelector('#footer-primary-btn');
+        if (footerBtn) {
+          footerBtn.textContent = '下一步';
+          footerBtn.onclick = () => {
+            this.handleNextButton();
+          };
+        }
+      }
+      
+      // 檢查是否從 AD8 回來
+      if (query.resume) {
+        // 從指定題目繼續
+        await this.startFromQuestion(query.resume);
       } else {
-        // 沒有草稿，顯示起始頁（user info page-start）
-        this.showStartPage();
+        // 檢查是否有草稿
+        await this.engine.loadDraft();
+        const answers = this.engine.getAnswers();
+        const hasDraft = Object.keys(answers).length > 0;
+        
+        if (hasDraft) {
+          // 有草稿，繼續問卷
+          await this.start();
+        } else {
+          // 沒有草稿，顯示起始頁（user info page-start）
+          this.showStartPage();
+        }
+      }
+    } catch (error) {
+      console.error('UserInfo init error:', error);
+      console.error('Error stack:', error.stack);
+      // 顯示錯誤訊息
+      if (container) {
+        container.innerHTML = `
+          <div style="padding: 2rem; text-align: center;">
+            <p style="color: red;">載入錯誤：${error.message}</p>
+            <p style="color: #666; margin-top: 1rem;">請重新整理頁面或聯繫技術支援</p>
+          </div>
+        `;
       }
     }
   },
@@ -61,9 +84,22 @@ const UserInfoModule = {
    * 顯示起始頁（user info page-start）
    */
   showStartPage() {
-    this.currentState = 'start';
-    this.container.innerHTML = `
-      <div class="userinfo-start scrollable-content">
+    try {
+      if (!this.container) {
+        console.error('UserInfo: container is null in showStartPage');
+        return;
+      }
+      
+      console.log('UserInfo: Showing start page');
+      this.currentState = 'start';
+      
+      // 確保容器是空的
+      this.container.innerHTML = '';
+      
+      // 建立起始頁內容
+      const startPageDiv = document.createElement('div');
+      startPageDiv.className = 'userinfo-start scrollable-content';
+      startPageDiv.innerHTML = `
         <div class="userinfo-start__icon">👤</div>
         <h2 class="userinfo-start__title">個人化設定</h2>
         <p class="userinfo-start__message">
@@ -72,16 +108,39 @@ const UserInfoModule = {
         <p class="userinfo-start__submessage">
           我們將詢問一些基本問題，幫助我們更好地了解您和患者的情況
         </p>
-      </div>
-    `;
-    
-    // 更新 footer 按鈕
-    const footerBtn = this.footer.querySelector('#footer-primary-btn');
-    if (footerBtn) {
-      footerBtn.textContent = '開始';
-      footerBtn.onclick = () => {
-        this.start();
-      };
+      `;
+      
+      this.container.appendChild(startPageDiv);
+      console.log('UserInfo: Start page rendered');
+      
+      // 更新 footer 按鈕
+      if (this.footer) {
+        const footerBtn = this.footer.querySelector('#footer-primary-btn');
+        if (footerBtn) {
+          footerBtn.textContent = '開始';
+          footerBtn.onclick = () => {
+            console.log('UserInfo: Start button clicked');
+            this.start();
+          };
+          console.log('UserInfo: Footer button updated');
+        } else {
+          console.warn('UserInfo: Footer button not found');
+        }
+      } else {
+        console.warn('UserInfo: Footer not available');
+      }
+    } catch (error) {
+      console.error('UserInfo showStartPage error:', error);
+      console.error('Error stack:', error.stack);
+      
+      // 顯示錯誤訊息
+      if (this.container) {
+        this.container.innerHTML = `
+          <div style="padding: 2rem; text-align: center;">
+            <p style="color: red;">顯示起始頁時發生錯誤：${error.message}</p>
+          </div>
+        `;
+      }
     }
   },
 

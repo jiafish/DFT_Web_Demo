@@ -1,191 +1,73 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DFT Web Demo - 照護助手</title>
-  
-  <!-- Shared Styles -->
-  <link rel="stylesheet" href="./src/shared/styles/tokens.css">
-  <link rel="stylesheet" href="./src/shared/styles/layout.css">
-  <link rel="stylesheet" href="./src/shared/styles/components.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caremate照護平台</title>
+    <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
-  <div id="app">
-    <!-- Header -->
-    <div id="app-header"></div>
-    
-    <!-- Sidebar -->
-    <div id="app-sidebar"></div>
-    
-    <!-- Main Content -->
-    <main class="app-main">
-      <div class="main-content" id="main-content">
-        <!-- 內容由 router 動態載入 -->
-      </div>
-    </main>
-    
-    <!-- Footer (Sticky Primary Button) -->
-    <div class="app-footer" id="app-footer" style="display: none;">
-      <button class="btn btn-primary btn-full app-footer__button" id="footer-primary-btn">
-        下一步
-      </button>
-    </div>
-  </div>
+    <!-- Sidebar (Desktop) / Drawer (Mobile) -->
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <img src="IMG/DFT_蛤哩恭啥_LOGO.png" alt="DFT Logo" class="logo" style="width: auto; height: 100%;">
+            <button class="close-btn" id="closeSidebar" aria-label="關閉選單">
+                <span>&times;</span>
+            </button>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#main" class="nav-item" data-page="main">
+                <span>首頁</span>
+            </a>
+            <a href="#userinfo" class="nav-item" data-page="userinfo">
+                <span>個人化設定</span>
+            </a>
+            <a href="#ad8" class="nav-item" data-page="ad8">
+                <span>失智檢測</span>
+            </a>
+            <a href="#carejournal" class="nav-item" data-page="carejournal">
+                <span>照護日誌</span>
+            </a>
+            <div class="nav-divider"></div>
+            <a href="#settings" class="nav-item" data-page="settings">
+                <span>設定</span>
+            </a>
+            <a href="#account" class="nav-item" data-page="account">
+                <span>帳號資訊</span>
+            </a>
+            <a href="#logout" class="nav-item" data-page="logout">
+                <span>登出</span>
+            </a>
+        </nav>
+    </aside>
 
-  <!-- Scripts -->
-  <script type="module">
-    // 載入共用元件和工具
-    import AppHeader from './src/shared/components/header.js';
-    import Sidebar from './src/shared/components/sidebar.js';
-    import router from './src/shared/utils/router.js';
-    
-    // 初始化 Header
-    const headerContainer = document.getElementById('app-header');
-    const header = new AppHeader(headerContainer);
-    
-    // 初始化 Sidebar
-    const sidebarContainer = document.getElementById('app-sidebar');
-    const sidebar = new Sidebar(sidebarContainer);
-    
-    // 綁定 Header 事件
-    header.setOnMenuClick(() => {
-      sidebar.toggle();
-    });
-    
-    header.setOnBackClick(() => {
-      window.history.back();
-    });
-    
-    // 路由標題對應
-    const routeTitles = {
-      '/main': '首頁',
-      '/user-info': '個人化設定',
-      '/ad8': '失智檢測（AD8）',
-      '/journal': '照護日誌',
-      '/settings': '設定',
-      '/account': '帳號資訊'
-    };
-    
-    // 路由變化時更新標題和返回按鈕
-    router.afterEach((path) => {
-      const title = routeTitles[path] || '首頁';
-      header.setTitle(title);
-      
-      // 顯示/隱藏返回按鈕（首頁不顯示）
-      header.showBackButton(path !== '/main');
-      
-      // 更新 sidebar active 狀態
-      sidebar.updateActiveLink(path);
-    });
-    
-    // 動態載入模組
-    async function loadModule(modulePath) {
-      try {
-        const module = await import(modulePath);
-        const moduleExport = module.default || module;
-        if (!moduleExport) {
-          console.error(`Module ${modulePath} has no default export`);
-          return null;
-        }
-        return moduleExport;
-      } catch (error) {
-        console.error(`Failed to load module: ${modulePath}`, error);
-        console.error('Error details:', error.stack);
-        return null;
-      }
-    }
-    
-    // 註冊路由
-    router.route('/main', async () => {
-      const mainModule = await loadModule('./src/modules/main/main.js');
-      if (mainModule) {
-        const container = document.getElementById('main-content');
-        const footer = document.getElementById('app-footer');
-        footer.style.display = 'none';
-        await mainModule.init(container);
-      }
-    });
-    
-    router.route('/user-info', async (path, query) => {
-      try {
-        const userInfoModule = await loadModule('./src/modules/userInfo/userInfo.js');
-        if (userInfoModule && typeof userInfoModule.init === 'function') {
-          const container = document.getElementById('main-content');
-          const footer = document.getElementById('app-footer');
-          if (!container) {
-            console.error('Main content container not found');
-            return;
-          }
-          if (!footer) {
-            console.error('Footer not found');
-            return;
-          }
-          footer.style.display = 'block';
-          await userInfoModule.init(container, { header, footer, query });
-        } else {
-          console.error('UserInfo module failed to load or init method not found');
-        }
-      } catch (error) {
-        console.error('Error initializing UserInfo module:', error);
-      }
-    });
-    
-    router.route('/ad8', async (path, query) => {
-      const ad8Module = await loadModule('./src/modules/ad8/ad8.js');
-      if (ad8Module) {
-        const container = document.getElementById('main-content');
-        const footer = document.getElementById('app-footer');
-        footer.style.display = 'block';
-        await ad8Module.init(container, { header, footer, query });
-      }
-    });
-    
-    router.route('/journal', async () => {
-      const journalModule = await loadModule('./src/modules/CareJournal/CareJournal.js');
-      if (journalModule) {
-        const container = document.getElementById('main-content');
-        const footer = document.getElementById('app-footer');
-        footer.style.display = 'block';
-        await journalModule.init(container, { header, footer });
-      }
-    });
-    
-    router.route('/settings', async () => {
-      const settingsModule = await loadModule('./src/modules/settings/settings.js');
-      if (settingsModule) {
-        const container = document.getElementById('main-content');
-        const footer = document.getElementById('app-footer');
-        footer.style.display = 'none';
-        await settingsModule.init(container);
-      }
-    });
-    
-    router.route('/account', async () => {
-      const accountModule = await loadModule('./src/modules/account/account.js');
-      if (accountModule) {
-        const container = document.getElementById('main-content');
-        const footer = document.getElementById('app-footer');
-        footer.style.display = 'none';
-        await accountModule.init(container);
-      }
-    });
-    
-    // 預設導向首頁（如果沒有 hash）
-    // 注意：router 會在初始化時自動處理路由
-    // 但如果沒有 hash，需要手動觸發
-    if (!window.location.hash || window.location.hash === '#') {
-      // 延遲執行，確保所有路由都已註冊
-      setTimeout(() => {
-        router.navigate('/main');
-      }, 0);
-    } else {
-      // 如果有 hash，手動觸發路由處理（因為 router 的 DOMContentLoaded 可能已經錯過）
-      setTimeout(() => {
-        router.handleRoute();
-      }, 0);
-    }
-  </script>
+    <!-- Overlay for Mobile Drawer -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Main Content Area -->
+    <div class="main-container">
+        <!-- Header with Hamburger -->
+        <header class="header">
+            <button class="hamburger" id="hamburger" aria-label="開啟選單">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </header>
+
+        <!-- Page Content -->
+        <main class="page-content" id="pageContent">
+            <!-- Pages will be dynamically loaded here -->
+        </main>
+    </div>
+
+    <script src="js/router.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/pages/main-page.js"></script>
+    <script src="js/pages/userinfo-page.js"></script>
+    <script src="js/pages/ad8-page.js"></script>
+    <script src="js/pages/carejournal-page.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
-
