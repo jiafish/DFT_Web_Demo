@@ -1,0 +1,82 @@
+/* UserInfo Module Styles */
+
+.userinfo-page {
+  padding: var(--spacing-lg) 0;
+}
+
+.userinfo-question {
+  margin-bottom: var(--spacing-xl);
+}
+
+.userinfo-question__title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin-bottom: var(--spacing-xl);
+  line-height: var(--line-height-tight);
+}
+
+.userinfo-question__content {
+  margin-bottom: var(--spacing-md);
+}
+
+.userinfo-question__error {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  margin-top: var(--spacing-sm);
+  display: none;
+}
+
+/* 中繼頁 */
+.userinfo-intermediate {
+  text-align: center;
+  padding: var(--spacing-3xl) var(--spacing-lg);
+}
+
+.userinfo-intermediate__icon {
+  font-size: 64px;
+  margin-bottom: var(--spacing-lg);
+}
+
+.userinfo-intermediate__title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin-bottom: var(--spacing-md);
+}
+
+.userinfo-intermediate__message {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-light);
+  line-height: var(--line-height-relaxed);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* 完成頁 */
+.userinfo-complete {
+  text-align: center;
+  padding: var(--spacing-3xl) var(--spacing-lg);
+}
+
+.userinfo-complete__icon {
+  font-size: 64px;
+  margin-bottom: var(--spacing-lg);
+  color: var(--color-success);
+}
+
+.userinfo-complete__title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin-bottom: var(--spacing-md);
+}
+
+.userinfo-complete__message {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-light);
+  line-height: var(--line-height-relaxed);
+  max-width: 600px;
+  margin: 0 auto var(--spacing-2xl);
+}
+

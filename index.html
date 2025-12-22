@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DFT Web Demo - 照護助手</title>
+  
+  <!-- Shared Styles -->
+  <link rel="stylesheet" href="./src/shared/styles/tokens.css">
+  <link rel="stylesheet" href="./src/shared/styles/layout.css">
+  <link rel="stylesheet" href="./src/shared/styles/components.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <div id="app-header"></div>
+    
+    <!-- Sidebar -->
+    <div id="app-sidebar"></div>
+    
+    <!-- Main Content -->
+    <main class="app-main">
+      <div class="main-content" id="main-content">
+        <!-- 內容由 router 動態載入 -->
+      </div>
+    </main>
+    
+    <!-- Footer (Sticky Primary Button) -->
+    <div class="app-footer" id="app-footer" style="display: none;">
+      <button class="btn btn-primary btn-full app-footer__button" id="footer-primary-btn">
+        下一步
+      </button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script type="module">
+    // 載入共用元件和工具
+    import AppHeader from './src/shared/components/header.js';
+    import Sidebar from './src/shared/components/sidebar.js';
+    import router from './src/shared/utils/router.js';
+    
+    // 初始化 Header
+    const headerContainer = document.getElementById('app-header');
+    const header = new AppHeader(headerContainer);
+    
+    // 初始化 Sidebar
+    const sidebarContainer = document.getElementById('app-sidebar');
+    const sidebar = new Sidebar(sidebarContainer);
+    
+    // 綁定 Header 事件
+    header.setOnMenuClick(() => {
+      sidebar.toggle();
+    });
+    
+    header.setOnBackClick(() => {
+      window.history.back();
+    });
+    
+    // 路由標題對應
+    const routeTitles = {
+      '/main': '首頁',
+      '/user-info': '個人化設定',
+      '/ad8': '失智檢測（AD8）',
+      '/journal': '照護日誌',
+      '/settings': '設定',
+      '/account': '帳號資訊'
+    };
+    
+    // 路由變化時更新標題和返回按鈕
+    router.afterEach((path) => {
+      const title = routeTitles[path] || '首頁';
+      header.setTitle(title);
+      
+      // 顯示/隱藏返回按鈕（首頁不顯示）
+      header.showBackButton(path !== '/main');
+      
+      // 更新 sidebar active 狀態
+      sidebar.updateActiveLink(path);
+    });
+    
+    // 動態載入模組
+    async function loadModule(modulePath) {
+      try {
+        const module = await import(modulePath);
+        return module.default || module;
+      } catch (error) {
+        console.error(`Failed to load module: ${modulePath}`, error);
+        return null;
+      }
+    }
+    
+    // 註冊路由
+    router.route('/main', async () => {
+      const mainModule = await loadModule('./src/modules/main/main.js');
+      if (mainModule) {
+        const container = document.getElementById('main-content');
+        const footer = document.getElementById('app-footer');
+        footer.style.display = 'none';
+        await mainModule.init(container);
+      }
+    });
+    
+    router.route('/user-info', async (path, query) => {
+      const userInfoModule = await loadModule('./src/modules/userInfo/userInfo.js');
+      if (userInfoModule) {
+        const container = document.getElementById('main-content');
+        const footer = document.getElementById('app-footer');
+        footer.style.display = 'block';
+        await userInfoModule.init(container, { header, footer, query });
+      }
+    });
+    
+    router.route('/ad8', async (path, query) => {
+      const ad8Module = await loadModule('./src/modules/ad8/ad8.js');
+      if (ad8Module) {
+        const container = document.getElementById('main-content');
+        const footer = document.getElementById('app-footer');
+        footer.style.display = 'block';
+        await ad8Module.init(container, { header, footer, query });
+      }
+    });
+    
+    router.route('/journal', async () => {
+      const journalModule = await loadModule('./src/modules/CareJournal/CareJournal.js');
+      if (journalModule) {
+        const container = document.getElementById('main-content');
+        const footer = document.getElementById('app-footer');
+        footer.style.display = 'block';
+        await journalModule.init(container, { header, footer });
+      }
+    });
+    
+    router.route('/settings', async () => {
+      const settingsModule = await loadModule('./src/modules/settings/settings.js');
+      if (settingsModule) {
+        const container = document.getElementById('main-content');
+        const footer = document.getElementById('app-footer');
+        footer.style.display = 'none';
+        await settingsModule.init(container);
+      }
+    });
+    
+    router.route('/account', async () => {
+      const accountModule = await loadModule('./src/modules/account/account.js');
+      if (accountModule) {
+        const container = document.getElementById('main-content');
+        const footer = document.getElementById('app-footer');
+        footer.style.display = 'none';
+        await accountModule.init(container);
+      }
+    });
+    
+    // 預設導向首頁
+    if (!window.location.hash || window.location.hash === '#') {
+      router.navigate('/main');
+    }
+  </script>
+</body>
+</html>
+
