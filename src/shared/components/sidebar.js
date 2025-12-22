@@ -73,7 +73,10 @@ class Sidebar {
         e.preventDefault();
         const route = link.getAttribute('data-route');
         router.navigate(route);
-        this.close();
+        // 只在行動版時關閉 sidebar
+        if (window.innerWidth < 1024) {
+          this.close();
+        }
       });
     });
 
@@ -119,6 +122,11 @@ class Sidebar {
    * 開啟 sidebar
    */
   open() {
+    // 只在行動版時開啟 sidebar
+    if (window.innerWidth >= 1024) {
+      return; // 桌面版 sidebar 固定顯示
+    }
+    
     this.isOpen = true;
     const sidebar = this.container.querySelector('.app-sidebar');
     if (sidebar) {
@@ -134,6 +142,11 @@ class Sidebar {
    * 關閉 sidebar
    */
   close() {
+    // 只在行動版時關閉 sidebar
+    if (window.innerWidth >= 1024) {
+      return; // 桌面版不關閉
+    }
+    
     this.isOpen = false;
     const sidebar = this.container.querySelector('.app-sidebar');
     if (sidebar) {
@@ -149,6 +162,12 @@ class Sidebar {
    * 切換 sidebar
    */
   toggle() {
+    // 只在行動版時切換
+    if (window.innerWidth >= 1024) {
+      // 桌面版 sidebar 固定顯示，不需要切換
+      return;
+    }
+    
     if (this.isOpen) {
       this.close();
     } else {

@@ -16,7 +16,7 @@ const UserInfoModule = {
     this.footer = footer;
     this.query = query;
     this.engine = new UserInfoEngine(container);
-    this.currentState = 'question'; // 'question' | 'intermediate' | 'complete'
+    this.currentState = 'start'; // 'start' | 'question' | 'intermediate' | 'complete'
     this.currentPart = 'part1'; // 'part1' | 'part2'
     
     // 設定引擎回調
@@ -42,8 +42,46 @@ const UserInfoModule = {
       // 從指定題目繼續
       await this.startFromQuestion(query.resume);
     } else {
-      // 從頭開始
-      await this.start();
+      // 檢查是否有草稿
+      await this.engine.loadDraft();
+      const answers = this.engine.getAnswers();
+      const hasDraft = Object.keys(answers).length > 0;
+      
+      if (hasDraft) {
+        // 有草稿，繼續問卷
+        await this.start();
+      } else {
+        // 沒有草稿，顯示起始頁（user info page-start）
+        this.showStartPage();
+      }
+    }
+  },
+
+  /**
+   * 顯示起始頁（user info page-start）
+   */
+  showStartPage() {
+    this.currentState = 'start';
+    this.container.innerHTML = `
+      <div class="userinfo-start scrollable-content">
+        <div class="userinfo-start__icon">👤</div>
+        <h2 class="userinfo-start__title">個人化設定</h2>
+        <p class="userinfo-start__message">
+          填寫個人與患者資訊，讓 Caremate 為您客製化最適合的照護建議
+        </p>
+        <p class="userinfo-start__submessage">
+          我們將詢問一些基本問題，幫助我們更好地了解您和患者的情況
+        </p>
+      </div>
+    `;
+    
+    // 更新 footer 按鈕
+    const footerBtn = this.footer.querySelector('#footer-primary-btn');
+    if (footerBtn) {
+      footerBtn.textContent = '開始';
+      footerBtn.onclick = () => {
+        this.start();
+      };
     }
   },
 
@@ -54,6 +92,18 @@ const UserInfoModule = {
     // 載入草稿，檢查進度
     await this.engine.loadDraft();
     const answers = this.engine.getAnswers();
+    
+    // 更新狀態為 question
+    this.currentState = 'question';
+    
+    // 更新 footer 按鈕
+    const footerBtn = this.footer.querySelector('#footer-primary-btn');
+    if (footerBtn) {
+      footerBtn.textContent = '下一步';
+      footerBtn.onclick = () => {
+        this.handleNextButton();
+      };
+    }
     
     // 檢查 Part 1 是否完成
     const part1Ids = getPart1QuestionIds();
@@ -124,6 +174,12 @@ const UserInfoModule = {
    * 處理下一步按鈕
    */
   async handleNextButton() {
+    if (this.currentState === 'start') {
+      // 從起始頁開始問卷
+      this.start();
+      return;
+    }
+    
     if (this.currentState === 'intermediate') {
       this.startPart2();
       return;

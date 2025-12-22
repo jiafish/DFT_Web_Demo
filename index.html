@@ -83,9 +83,15 @@
     async function loadModule(modulePath) {
       try {
         const module = await import(modulePath);
-        return module.default || module;
+        const moduleExport = module.default || module;
+        if (!moduleExport) {
+          console.error(`Module ${modulePath} has no default export`);
+          return null;
+        }
+        return moduleExport;
       } catch (error) {
         console.error(`Failed to load module: ${modulePath}`, error);
+        console.error('Error details:', error.stack);
         return null;
       }
     }
@@ -102,12 +108,26 @@
     });
     
     router.route('/user-info', async (path, query) => {
-      const userInfoModule = await loadModule('./src/modules/userInfo/userInfo.js');
-      if (userInfoModule) {
-        const container = document.getElementById('main-content');
-        const footer = document.getElementById('app-footer');
-        footer.style.display = 'block';
-        await userInfoModule.init(container, { header, footer, query });
+      try {
+        const userInfoModule = await loadModule('./src/modules/userInfo/userInfo.js');
+        if (userInfoModule && typeof userInfoModule.init === 'function') {
+          const container = document.getElementById('main-content');
+          const footer = document.getElementById('app-footer');
+          if (!container) {
+            console.error('Main content container not found');
+            return;
+          }
+          if (!footer) {
+            console.error('Footer not found');
+            return;
+          }
+          footer.style.display = 'block';
+          await userInfoModule.init(container, { header, footer, query });
+        } else {
+          console.error('UserInfo module failed to load or init method not found');
+        }
+      } catch (error) {
+        console.error('Error initializing UserInfo module:', error);
       }
     });
     
@@ -151,9 +171,19 @@
       }
     });
     
-    // 預設導向首頁
+    // 預設導向首頁（如果沒有 hash）
+    // 注意：router 會在初始化時自動處理路由
+    // 但如果沒有 hash，需要手動觸發
     if (!window.location.hash || window.location.hash === '#') {
-      router.navigate('/main');
+      // 延遲執行，確保所有路由都已註冊
+      setTimeout(() => {
+        router.navigate('/main');
+      }, 0);
+    } else {
+      // 如果有 hash，手動觸發路由處理（因為 router 的 DOMContentLoaded 可能已經錯過）
+      setTimeout(() => {
+        router.handleRoute();
+      }, 0);
     }
   </script>
 </body>

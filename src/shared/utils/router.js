@@ -16,10 +16,17 @@ class Router {
       this.handleRoute();
     });
     
-    // 初始載入時處理路由
-    window.addEventListener('DOMContentLoaded', () => {
-      this.handleRoute();
-    });
+    // 如果 DOM 已經載入，立即處理路由
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', () => {
+        this.handleRoute();
+      });
+    } else {
+      // DOM 已經載入，延遲執行以確保路由已註冊
+      setTimeout(() => {
+        this.handleRoute();
+      }, 0);
+    }
   }
 
   /**
