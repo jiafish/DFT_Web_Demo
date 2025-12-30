@@ -207,11 +207,15 @@ function renderAD8Result(container, score) {
 }
 
 async function renderAD8Page(container, params = {}) {
+    // 以本次導頁參數為準（非常重要）
     ad8ReturnTo = params.returnTo || null;
     ad8ReturnStep = params.returnStep || null;
-    
+
     // Track if accessed from Main (not from userinfo)
-    if (params.fromMain || !params.returnTo) {
+    // 優先檢查本次 params，再檢查 savedResult
+    if (params.fromMain !== undefined) {
+        ad8FromMain = !!params.fromMain;
+    } else if (!ad8ReturnTo) {
         ad8FromMain = true;
     } else {
         ad8FromMain = false;
@@ -220,15 +224,23 @@ async function renderAD8Page(container, params = {}) {
     // Check if already completed
     const savedResult = storage.getAD8Result();
     if (savedResult && savedResult.score !== undefined) {
-        // Restore return info from saved result
-        if (savedResult.returnTo) {
-            ad8ReturnTo = savedResult.returnTo;
-            ad8ReturnStep = savedResult.returnStep;
-        }
-        if (savedResult.fromMain !== undefined) {
-            ad8FromMain = savedResult.fromMain;
-        }
-        renderAD8Result(container, savedResult.score);
+        // 合併：本次 params 優先，避免被舊結果覆蓋
+        const merged = {
+            ...savedResult,
+            returnTo: ad8ReturnTo || savedResult.returnTo || null,
+            returnStep: ad8ReturnStep || savedResult.returnStep || null,
+            fromMain: (params.fromMain !== undefined) ? !!params.fromMain : (savedResult.fromMain ?? ad8FromMain)
+        };
+
+        // 更新全域狀態，確保 renderAD8Result 判斷正確
+        ad8ReturnTo = merged.returnTo;
+        ad8ReturnStep = merged.returnStep;
+        ad8FromMain = merged.fromMain;
+
+        // 可選：回存，避免重新整理後上下文丟失
+        storage.saveAD8Result(merged);
+
+        renderAD8Result(container, merged.score);
     } else {
         renderAD8Intro(container);
     }
