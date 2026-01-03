@@ -202,6 +202,139 @@ function getCurrentStep() {
     return userInfoFlow[currentUserInfoStep];
 }
 
+// Check if userInfo is complete
+function isUserInfoComplete(data) {
+    // Required steps (excluding info pages: start, next, end)
+    const requiredSteps = ['1-1', '1-2', '1-3', '1-4', '1-5', '2-1', '2-2', '2-3', '2-5', '2-6', '2-7', '2-8'];
+    
+    // If diagnosisType is undiagnosed, skip 2-4
+    const shouldSkip2_4 = data.diagnosisType === 'undiagnosed';
+    const stepsToCheck = shouldSkip2_4 
+        ? requiredSteps.filter(step => step !== '2-4')
+        : [...requiredSteps, '2-4'];
+    
+    // Check if all required steps have answers
+    return stepsToCheck.every(stepKey => {
+        const config = userInfoConfig[stepKey];
+        if (!config || !config.key) return false;
+        const value = data[config.key];
+        return value !== undefined && value !== null && value !== '';
+    });
+}
+
+// Format userInfo answer to readable text
+function formatUserInfoAnswer(config, value) {
+    if (value === undefined || value === null || value === '') {
+        return '未填寫';
+    }
+    
+    if (config.type === 'number') {
+        return value.toString();
+    }
+    
+    if (config.type === 'radio') {
+        // Handle object format {value: 'other', other: 'text'}
+        if (typeof value === 'object' && value.value) {
+            if (value.value === 'other') {
+                return `其他：${value.other || ''}`;
+            }
+            const option = config.options.find(opt => opt.value === value.value);
+            return option ? option.label : value.value;
+        }
+        
+        const option = config.options.find(opt => opt.value === value);
+        return option ? option.label : value;
+    }
+    
+    if (config.type === 'checkbox') {
+        if (!Array.isArray(value)) {
+            return '未填寫';
+        }
+        
+        return value.map(item => {
+            // Handle object format {value: 'other', other: 'text'}
+            if (typeof item === 'object' && item.value) {
+                if (item.value === 'other') {
+                    return `其他：${item.other || ''}`;
+                }
+                const option = config.options.find(opt => opt.value === item.value);
+                return option ? option.label : item.value;
+            }
+            
+            const option = config.options.find(opt => opt.value === item);
+            return option ? option.label : item;
+        }).join('、');
+    }
+    
+    return String(value);
+}
+
+// Render userInfo summary page
+function renderUserInfoSummary(container) {
+    const data = storage.getUserInfo();
+    
+    // Get all question steps (excluding info pages)
+    const questionSteps = userInfoFlow.filter(step => {
+        const config = userInfoConfig[step];
+        return config && config.type !== 'info' && config.key;
+    });
+    
+    // Filter steps based on diagnosisType
+    const stepsToShow = data.diagnosisType === 'undiagnosed'
+        ? questionSteps.filter(step => step !== '2-4')
+        : questionSteps;
+    
+    let summaryHTML = `
+        <div class="page-title">個人化設定 - 答案總覽</div>
+        <div class="card">
+            <h3 style="margin-bottom: 1.5rem; color: var(--primary-color);">已填寫的資訊</h3>
+    `;
+    
+    stepsToShow.forEach(stepKey => {
+        const config = userInfoConfig[stepKey];
+        if (!config || !config.key) return;
+        
+        const value = data[config.key];
+        const formattedAnswer = formatUserInfoAnswer(config, value);
+        
+        summaryHTML += `
+            <div style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color);">
+                <div style="font-weight: 600; color: var(--text-color); margin-bottom: 0.5rem;">
+                    ${config.question}
+                </div>
+                <div style="color: var(--text-light); line-height: 1.6;">
+                    ${formattedAnswer}
+                </div>
+            </div>
+        `;
+    });
+    
+    summaryHTML += `
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 2rem;">
+            <button class="btn btn-primary" id="backToMainBtn">回首頁</button>
+            <button class="btn btn-secondary" id="restartBtn">重新填寫</button>
+        </div>
+    `;
+    
+    container.innerHTML = summaryHTML;
+    
+    // Back to main button
+    document.getElementById('backToMainBtn').addEventListener('click', () => {
+        router.navigate('main');
+    });
+    
+    // Restart button
+    document.getElementById('restartBtn').addEventListener('click', () => {
+        if (confirm('確定要重新填寫嗎？這將清除所有已填寫的資料。')) {
+            storage.clearUserInfo();
+            userInfoData = {};
+            currentUserInfoStep = 0;
+            router.navigate('userinfo');
+        }
+    });
+}
+
 function renderUserInfoQuestion(container, stepKey) {
     const config = userInfoConfig[stepKey];
     if (!config) return;
@@ -466,6 +599,12 @@ function renderUserInfoQuestion(container, stepKey) {
 async function renderUserInfoPage(container, params = {}) {
     // Load saved data first
     userInfoData = storage.getUserInfo();
+
+    // Handle summary mode
+    if (params.mode === 'summary') {
+        renderUserInfoSummary(container);
+        return;
+    }
 
     // Reset or continue from saved step
     if (params.step) {

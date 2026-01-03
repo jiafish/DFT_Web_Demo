@@ -158,6 +158,9 @@ function renderAD8Result(container, score) {
     const isFromUserInfo = ad8ReturnTo === 'userinfo' && ad8ReturnStep;
     const buttonText = isFromUserInfo ? '繼續填寫' : '回首頁';
     
+    // Show restart button only if not from userinfo
+    const showRestartButton = !isFromUserInfo;
+    
     container.innerHTML = `
         <div style="padding: 2rem 1rem; padding-bottom: 100px;">
             <div class="text-center" style="margin-bottom: 2rem;">
@@ -190,6 +193,11 @@ function renderAD8Result(container, score) {
                 <button class="btn btn-primary" id="nextBtn">
                     ${buttonText}
                 </button>
+                ${showRestartButton ? `
+                    <button class="btn btn-secondary" id="restartBtn" style="margin-top: 1rem;">
+                        重新填寫
+                    </button>
+                ` : ''}
             </div>
         </div>
     `;
@@ -204,6 +212,20 @@ function renderAD8Result(container, score) {
             router.navigate('main');
         }
     });
+    
+    // Restart button handler (only shown when not from userinfo)
+    if (showRestartButton) {
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            if (confirm('確定要重新填寫嗎？這將清除之前的檢測結果。')) {
+                storage.clearAD8Result();
+                ad8Answers = {};
+                ad8ReturnTo = null;
+                ad8ReturnStep = null;
+                ad8FromMain = false;
+                renderAD8Intro(container);
+            }
+        });
+    }
 }
 
 async function renderAD8Page(container, params = {}) {
@@ -225,10 +247,24 @@ async function renderAD8Page(container, params = {}) {
     const savedResult = storage.getAD8Result();
     if (savedResult && savedResult.score !== undefined) {
         // 合併：本次 params 優先，避免被舊結果覆蓋
+        // 若本次 fromMain === true，強制 returnTo/returnStep = null
+        let finalReturnTo = ad8ReturnTo;
+        let finalReturnStep = ad8ReturnStep;
+        
+        if (ad8FromMain || params.fromMain === true) {
+            // 從 Main 進來，強制清除 returnTo/returnStep
+            finalReturnTo = null;
+            finalReturnStep = null;
+        } else {
+            // 否則使用本次 params 或 savedResult
+            finalReturnTo = ad8ReturnTo || savedResult.returnTo || null;
+            finalReturnStep = ad8ReturnStep || savedResult.returnStep || null;
+        }
+        
         const merged = {
             ...savedResult,
-            returnTo: ad8ReturnTo || savedResult.returnTo || null,
-            returnStep: ad8ReturnStep || savedResult.returnStep || null,
+            returnTo: finalReturnTo,
+            returnStep: finalReturnStep,
             fromMain: (params.fromMain !== undefined) ? !!params.fromMain : (savedResult.fromMain ?? ad8FromMain)
         };
 

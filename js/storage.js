@@ -28,6 +28,12 @@ class StorageService {
         return allData.userInfo || {};
     }
 
+    clearUserInfo() {
+        const allData = this.getAllData();
+        allData.userInfo = {};
+        this.saveAllData(allData);
+    }
+
     // AD8
     saveAD8Result(result) {
         const allData = this.getAllData();
@@ -39,6 +45,12 @@ class StorageService {
     getAD8Result() {
         const allData = this.getAllData();
         return allData.ad8Result;
+    }
+
+    clearAD8Result() {
+        const allData = this.getAllData();
+        allData.ad8Result = null;
+        this.saveAllData(allData);
     }
 
     // CareJournal
