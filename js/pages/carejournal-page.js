@@ -207,19 +207,31 @@ function showAddJournalModal() {
 }
 
 function showJournalDetail(dateKey) {
-    const journal = storage.getCareJournal(dateKey);
+    // Navigate to detail page instead of modal
+    router.navigate('carelog-detail', { date: dateKey });
+}
+
+async function renderCareJournalPage(container) {
+    renderCalendar(container);
+}
+
+// Render journal detail page
+async function renderCareLogDetailPage(container, params = {}) {
+    const dateKey = params.date;
+    if (!dateKey) {
+        router.navigate('carejournal');
+        return;
+    }
     
-    const modal = document.createElement('div');
-    modal.className = 'modal show';
+    const journal = storage.getCareJournal(dateKey);
+    const hasLog = !!journal;
+    
+    // Generate logId if journal exists (using date as ID for simplicity)
+    const logId = hasLog ? dateKey : null;
     
     let contentHTML = `
-        <div class="modal-overlay"></div>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">日誌詳情 - ${dateKey}</h3>
-                <button class="modal-close" id="closeModal">&times;</button>
-            </div>
-            <div style="padding: 1rem 0;">
+        <div class="page-title">日誌詳情 - ${dateKey}</div>
+        <div style="padding-bottom: calc(96px + env(safe-area-inset-bottom));">
     `;
     
     if (journal) {
@@ -230,54 +242,171 @@ function showJournalDetail(dateKey) {
         };
         
         contentHTML += `
-            <div class="form-group">
-                <label class="form-label">個案狀況</label>
-                <div style="padding: 1rem; background: #f5f5f5; border-radius: 8px; min-height: 80px;">
-                    ${journal.condition || '今天尚未新增狀況紀錄'}
+            <div class="card">
+                <div class="form-group">
+                    <label class="form-label">個案狀況</label>
+                    <div style="padding: 1rem; background: #f5f5f5; border-radius: 8px; min-height: 80px;">
+                        ${journal.condition || '今天尚未新增狀況紀錄'}
+                    </div>
                 </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">健康自評</label>
-                <div style="padding: 0.75rem; background: #f5f5f5; border-radius: 8px;">
-                    ${healthLabels[journal.health] || journal.health}
+                <div class="form-group">
+                    <label class="form-label">健康自評</label>
+                    <div style="padding: 0.75rem; background: #f5f5f5; border-radius: 8px;">
+                        ${healthLabels[journal.health] || journal.health}
+                    </div>
                 </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">當日問題詢問記錄</label>
-                <div class="empty-state" style="padding: 2rem 1rem;">
-                    <div class="empty-state-icon">💬</div>
-                    <p>今天還沒有提問紀錄</p>
+                <div class="form-group">
+                    <label class="form-label">當日問題詢問記錄</label>
+                    <div class="empty-state" style="padding: 2rem 1rem;">
+                        <div class="empty-state-icon">💬</div>
+                        <p>今天還沒有提問紀錄</p>
+                    </div>
                 </div>
             </div>
         `;
     } else {
         contentHTML += `
-            <div class="empty-state">
-                <div class="empty-state-icon">📝</div>
-                <p>今天尚未新增狀況紀錄</p>
+            <div class="card">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📝</div>
+                    <p>今天尚未新增狀況紀錄</p>
+                </div>
             </div>
         `;
     }
     
-    contentHTML += `
+    contentHTML += `</div>`;
+    
+    container.innerHTML = contentHTML;
+    
+    // Set footer actions based on hasLog
+    const footer = document.querySelector('.footer-bar');
+    if (footer) {
+        const buttonText = hasLog ? '編輯記錄' : '新增記錄';
+        const mode = hasLog ? 'edit' : 'new';
+        
+        footer.innerHTML = `
+            <div class="footer-actions">
+                <button class="btn btn-primary" id="entryBtn">${buttonText}</button>
             </div>
-        </div>
-    `;
-    
-    modal.innerHTML = contentHTML;
-    document.body.appendChild(modal);
-    
-    const closeModal = () => {
-        modal.remove();
-    };
-    
-    modal.querySelector('.modal-overlay').addEventListener('click', closeModal);
-    modal.querySelector('#closeModal').addEventListener('click', closeModal);
+        `;
+        
+        document.getElementById('entryBtn').addEventListener('click', () => {
+            router.navigate('carelog-entry', { 
+                date: dateKey, 
+                mode: mode,
+                logId: logId || undefined
+            });
+        });
+    }
 }
 
-async function renderCareJournalPage(container) {
-    renderCalendar(container);
+// Render journal entry page (new/edit)
+async function renderCareLogEntryPage(container, params = {}) {
+    const dateKey = params.date;
+    const mode = params.mode || 'new';
+    const logId = params.logId || dateKey;
+    
+    if (!dateKey) {
+        router.navigate('carejournal');
+        return;
+    }
+    
+    // Load existing data if editing
+    let journalData = null;
+    if (mode === 'edit' && logId) {
+        journalData = storage.getCareJournal(logId);
+    }
+    
+    const isEditMode = mode === 'edit' && journalData;
+    
+    let formHTML = `
+        <div class="page-title">${isEditMode ? '編輯記錄' : '新增記錄'} - ${dateKey}</div>
+        <form id="journalEntryForm" style="padding-bottom: calc(96px + env(safe-area-inset-bottom));">
+            <div class="card">
+                <div class="form-group">
+                    <label class="form-label">個案狀況 <span style="color: red;">*</span></label>
+                    <textarea class="form-textarea" name="condition" placeholder="請描述患者今日的狀況..." required>${isEditMode ? (journalData.condition || '') : ''}</textarea>
+                    <div class="error-message" id="conditionError" style="display: none;"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">健康自評 <span style="color: red;">*</span></label>
+                    <div class="radio-group">
+                        <div class="radio-item">
+                            <input type="radio" id="health-good" name="health" value="good" ${isEditMode && journalData.health === 'good' ? 'checked' : ''} required>
+                            <label for="health-good">良好</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" id="health-ok" name="health" value="ok" ${isEditMode && journalData.health === 'ok' ? 'checked' : ''} required>
+                            <label for="health-ok">尚可</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" id="health-bad" name="health" value="bad" ${isEditMode && journalData.health === 'bad' ? 'checked' : ''} required>
+                            <label for="health-bad">糟糕</label>
+                        </div>
+                    </div>
+                    <div class="error-message" id="healthError" style="display: none;"></div>
+                </div>
+            </div>
+        </form>
+    `;
+    
+    container.innerHTML = formHTML;
+    
+    // Set footer actions
+    const footer = document.querySelector('.footer-bar');
+    if (footer) {
+        footer.innerHTML = `
+            <div class="footer-actions">
+                <button type="submit" form="journalEntryForm" class="btn btn-primary" id="submitBtn">送出</button>
+            </div>
+        `;
+    }
+    
+    // Form submit handler
+    document.getElementById('journalEntryForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const condition = formData.get('condition');
+        const health = formData.get('health');
+        
+        let hasError = false;
+        
+        if (!condition || condition.trim() === '') {
+            document.getElementById('conditionError').textContent = '請填寫個案狀況';
+            document.getElementById('conditionError').style.display = 'block';
+            hasError = true;
+        } else {
+            document.getElementById('conditionError').style.display = 'none';
+        }
+        
+        if (!health) {
+            document.getElementById('healthError').textContent = '請選擇健康自評';
+            document.getElementById('healthError').style.display = 'block';
+            hasError = true;
+        } else {
+            document.getElementById('healthError').style.display = 'none';
+        }
+        
+        if (hasError) return;
+        
+        const savedJournalData = {
+            condition: condition.trim(),
+            health: health,
+            date: dateKey,
+            createdAt: isEditMode && journalData ? journalData.createdAt : new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        
+        storage.saveCareJournal(dateKey, savedJournalData);
+        
+        // Navigate back to detail page
+        router.navigate('carelog-detail', { date: dateKey });
+    });
 }
 
 router.register('carejournal', renderCareJournalPage);
+router.register('carelog-detail', renderCareLogDetailPage);
+router.register('carelog-entry', renderCareLogEntryPage);
 
