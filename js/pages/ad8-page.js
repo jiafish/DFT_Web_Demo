@@ -15,6 +15,19 @@ let ad8ReturnTo = null;
 let ad8ReturnStep = null;
 let ad8FromMain = false; // Track if AD8 was accessed from Main
 
+// Helper functions for footer actions (AD8 only)
+function setFooterActions(html) {
+    const footer = document.querySelector('.footer-bar');
+    if (!footer) return;
+    footer.innerHTML = `<div class="footer-actions">${html}</div>`;
+}
+
+function clearFooterActions() {
+    const footer = document.querySelector('.footer-bar');
+    if (!footer) return;
+    footer.innerHTML = '';
+}
+
 function renderAD8Intro(container) {
     container.innerHTML = `
         <div class="page-title">AD-8 失智檢測</div>
@@ -37,12 +50,11 @@ function renderAD8Intro(container) {
                 </label>
                 <div class="error-message" id="disclaimerError" style="display: none; margin-top: 0.5rem;">請勾選免責聲明</div>
             </div>
-            
-            <div class="btn-fixed">
-                <button class="btn btn-primary" id="startBtn" disabled>開始檢測</button>
-            </div>
         </div>
     `;
+
+    // Set footer actions
+    setFooterActions(`<button class="btn btn-primary" id="startBtn" disabled>開始檢測</button>`);
 
     const disclaimer = document.getElementById('disclaimer');
     const startBtn = document.getElementById('startBtn');
@@ -99,13 +111,13 @@ function renderAD8Questions(container) {
 
     questionsHTML += `
             <div class="error-message" id="errorMsg" style="display: none;"></div>
-            <div class="btn-fixed">
-                <button class="btn btn-primary" id="submitBtn">提交</button>
-            </div>
         </div>
     `;
 
     container.innerHTML = questionsHTML;
+
+    // Set footer actions
+    setFooterActions(`<button class="btn btn-primary" id="submitBtn">提交</button>`);
 
     document.getElementById('submitBtn').addEventListener('click', () => {
         // Collect answers
@@ -162,7 +174,7 @@ function renderAD8Result(container, score) {
     const showRestartButton = !isFromUserInfo;
     
     container.innerHTML = `
-        <div style="padding: 2rem 1rem; padding-bottom: 100px;">
+        <div style="padding: 2rem 1rem;">
             <div class="text-center" style="margin-bottom: 2rem;">
                 <img src="${imageSrc}" alt="檢測結果" style="max-width: 100%; height: auto; margin-bottom: 1.5rem;">
                 <div style="font-size: 2rem; font-weight: 600; color: var(--primary-color); margin-bottom: 1rem;">
@@ -179,7 +191,7 @@ function renderAD8Result(container, score) {
                         <p>建議盡快就醫，由醫師評估確認</p>
                     </div>
                 ` : `
-                    <h2 style="color: var(--secondary-color); margin-bottom: 1rem; text-align: center;">目前沒有明顯失智風險！</h3>
+                    <h2 style="color: var(--secondary-color); margin-bottom: 1rem; text-align: center;">目前沒有明顯失智風險！</h2>
                     <div style="text-align: center; line-height: 1.8; color: var(--text-color);">
                         <p style="margin-bottom: 1rem;"><strong>分數在正常範圍內（0–1 分）</strong></p>
                         <p style="margin-bottom: 1rem;">目前無明顯失智跡象</p>
@@ -188,19 +200,14 @@ function renderAD8Result(container, score) {
                     </div>
                 `}
             </div>
-            
-            <div class="btn-fixed">
-                <button class="btn btn-primary" id="nextBtn">
-                    ${buttonText}
-                </button>
-                ${showRestartButton ? `
-                    <button class="btn btn-secondary" id="restartBtn" style="margin-top: 1rem;">
-                        重新填寫
-                    </button>
-                ` : ''}
-            </div>
         </div>
     `;
+
+    // Set footer actions
+    setFooterActions(`
+        <button class="btn btn-primary" id="nextBtn">${buttonText}</button>
+        ${showRestartButton ? `<button class="btn btn-secondary" id="restartBtn">重新填寫</button>` : ''}
+    `);
 
     document.getElementById('nextBtn').addEventListener('click', () => {
         // If from userinfo, return to userinfo step 2-5

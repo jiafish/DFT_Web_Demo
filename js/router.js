@@ -75,6 +75,10 @@ class Router {
                 }
             });
 
+            // Clear footer-bar before rendering new page
+            const footerBar = document.querySelector('.footer-bar');
+            if (footerBar) footerBar.innerHTML = '';
+
             // Render page
             const pageContent = document.getElementById('pageContent');
             pageContent.innerHTML = '';
