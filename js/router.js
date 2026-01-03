@@ -40,6 +40,13 @@ class Router {
         return { path, params };
     }
 
+    // Update body class based on fixed CTA presence
+    updateFixedCtaLayout() {
+        const pageContent = document.getElementById('pageContent');
+        const hasFixed = !!pageContent?.querySelector('.btn-fixed');
+        document.body.classList.toggle('has-fixed-cta', hasFixed);
+    }
+
     async navigate(path, params = {}) {
         if (this.routes[path]) {
             // Set flag to prevent hashchange loop
@@ -74,6 +81,9 @@ class Router {
             this.currentPage = path;
             
             await this.routes[path](pageContent, params);
+            
+            // Update fixed CTA layout after render
+            this.updateFixedCtaLayout();
         }
     }
 

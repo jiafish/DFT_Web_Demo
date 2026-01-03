@@ -258,7 +258,9 @@ body {
 
 /* ===== Safety Patch: fixed bottom button 不遮擋主內容 ===== */
 /* 當頁面上存在 .btn-fixed 時，為主滾動區預留空間 */
-body:has(.btn-fixed) .page-content {
+/* 雙軌支援：:has() (現代瀏覽器) + body class (舊版瀏覽器) */
+body:has(.btn-fixed) .page-content,
+body.has-fixed-cta .page-content {
     padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 
