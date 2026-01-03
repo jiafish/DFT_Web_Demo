@@ -1,5 +1,8 @@
 /* ===== CSS Variables ===== */
 :root {
+    /* viewport 安全高度：避免 iOS Safari 100vh 問題 */
+    --app-vh: 100vh;
+
     --primary-color: #1D7CCF;
     --secondary-color: #3DD7CF;
     --bg-color: #FFFFFF;
@@ -11,6 +14,11 @@
     --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.15);
     --sidebar-width: 280px;
     --header-height: 64px;
+}
+
+/* 支援動態 viewport 的瀏覽器（含多數手機現代版） */
+@supports (height: 100dvh) {
+    :root { --app-vh: 100dvh; }
 }
 
 /* ===== Reset & Base ===== */
@@ -29,10 +37,8 @@ body {
 
 /* ===== Header ===== */
 .header {
-    position: fixed;
+    position: sticky;
     top: 0;
-    left: 0;
-    right: 0;
     height: var(--header-height);
     background: var(--bg-color);
     border-bottom: 1px solid var(--border-color);
@@ -161,17 +167,32 @@ body {
 /* ===== Main Container ===== */
 .main-container {
     margin-left: 0;
-    min-height: 100vh;
+    min-height: var(--app-vh);
     transition: margin-left 0.3s;
 }
 
+/* App Shell：Header / Scrollable Content / Footer 三段式 */
+.app-shell {
+    height: var(--app-vh);
+    display: grid;
+    grid-template-rows: var(--header-height) 1fr auto;
+}
+
 .page-content {
-    margin-top: var(--header-height);
-    min-height: calc(100vh - var(--header-height));
-    max-height: calc(100vh - var(--header-height));
     padding: 2rem;
+    min-height: 0;        /* 關鍵：避免 grid item 不縮小導致無法滾 */
     overflow-y: auto;
     overflow-x: hidden;
+}
+
+/* Footer / Bottom Action Bar：未來放底部操作列，避免 fixed 蓋住內容 */
+.footer-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 60;
+    background: var(--bg-color);
+    border-top: 1px solid var(--border-color);
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
 }
 
 /* ===== Buttons ===== */
@@ -221,6 +242,7 @@ body {
     right: 0;
     width: 100%;
     padding: 1rem;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
     background: var(--bg-color);
     border-top: 1px solid var(--border-color);
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
@@ -232,6 +254,12 @@ body {
     max-width: 600px;
     margin: 0 auto;
     display: block;
+}
+
+/* ===== Safety Patch: fixed bottom button 不遮擋主內容 ===== */
+/* 當頁面上存在 .btn-fixed 時，為主滾動區預留空間 */
+body:has(.btn-fixed) .page-content {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 
 /* ===== Cards ===== */

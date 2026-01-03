@@ -46,19 +46,24 @@
 
     <!-- Main Content Area -->
     <div class="main-container">
-        <!-- Header with Hamburger -->
-        <header class="header">
-            <button class="hamburger" id="hamburger" aria-label="開啟選單">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-        </header>
+        <div class="app-shell">
+            <!-- Header with Hamburger -->
+            <header class="header">
+                <button class="hamburger" id="hamburger" aria-label="開啟選單">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </header>
 
-        <!-- Page Content -->
-        <main class="page-content" id="pageContent">
-            <!-- Pages will be dynamically loaded here -->
-        </main>
+            <!-- Page Content (唯一主滾動區) -->
+            <main class="page-content" id="pageContent">
+                <!-- Pages will be dynamically loaded here -->
+            </main>
+
+            <!-- Footer / Bottom Action Bar (未來放 fixed actions；可先留空) -->
+            <footer class="footer-bar" aria-label="底部操作列"></footer>
+        </div>
     </div>
 
     <script src="js/router.js"></script>
