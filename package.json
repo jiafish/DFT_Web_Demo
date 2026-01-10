@@ -1,0 +1,17 @@
+{
+  "name": "caremate-web-demo",
+  "version": "1.0.0",
+  "description": "Caremate照護平台 Web Demo",
+  "main": "index.html",
+  "scripts": {
+    "start": "http-server -p 8080 -o",
+    "dev": "http-server -p 8080 -o"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
+

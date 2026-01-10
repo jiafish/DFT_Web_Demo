@@ -285,7 +285,7 @@ function renderUserInfoSummary(container) {
         : questionSteps;
     
     let summaryHTML = `
-        <div class="page-title">個人化設定 - 答案總覽</div>
+        <div class="page-title">個人化設定</div>
         <div class="card">
             <h3 style="margin-bottom: 1.5rem; color: var(--primary-color);">已填寫的資訊</h3>
     `;
@@ -409,10 +409,44 @@ function renderUserInfoQuestion(container, stepKey) {
         `;
     }
 
+    // Check if this is the first question (excluding info pages)
+    const questionSteps = userInfoFlow.filter(step => {
+        const stepConfig = userInfoConfig[step];
+        return stepConfig && stepConfig.type !== 'info' && stepConfig.key;
+    });
+    const currentQuestionIndex = questionSteps.indexOf(stepKey);
+    const isFirstQuestion = currentQuestionIndex === 0;
+    
+    // Calculate progress
+    const totalQuestions = questionSteps.length;
+    const currentProgress = currentQuestionIndex >= 0 ? ((currentQuestionIndex + 1) / totalQuestions) * 100 : 0;
+    
+    // Add back button before progress bar (only if not first question)
+    const backButtonHTML = !isFirstQuestion ? `
+        <button class="back-button" id="prevBtn">
+            <img src="IMG/back_icon.png" alt="返回" class="back-button__icon">
+            <span class="back-button__text">返回上一題</span>
+        </button>
+    ` : '';
+    
+    // Add progress bar before the question
+    const progressBarHTML = `
+        <div class="progress-bar-container">
+            <div class="progress-bar">
+                <div class="progress-bar-fill" style="width: ${currentProgress}%"></div>
+            </div>
+        </div>
+    `;
+    
+    questionHTML = backButtonHTML + progressBarHTML + questionHTML;
+    
     questionHTML += `
             <div class="error-message" id="errorMsg" style="display: none;"></div>
         </div>
-        <div class="btn-fixed">
+        <div class="btn-fixed" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <div style="display: flex; gap: 0.75rem;">
+                <button class="btn btn-secondary" id="skipBtn" style="flex: 1;">暫時跳過</button>
+            </div>
             <button class="btn btn-primary" id="nextBtn">下一步</button>
         </div>
     `;
@@ -498,6 +532,69 @@ function renderUserInfoQuestion(container, stepKey) {
         }
     }
 
+    // Previous button handler
+    if (!isFirstQuestion) {
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            // Find previous question step
+            const prevQuestionIndex = currentQuestionIndex - 1;
+            if (prevQuestionIndex >= 0) {
+                const prevStepKey = questionSteps[prevQuestionIndex];
+                // Find the actual step index in userInfoFlow
+                const prevStepIndex = userInfoFlow.indexOf(prevStepKey);
+                if (prevStepIndex >= 0) {
+                    currentUserInfoStep = prevStepIndex;
+                    const prevStep = getCurrentStep();
+                    if (prevStep) {
+                        renderUserInfoQuestion(container, prevStep);
+                    }
+                }
+            }
+        });
+    }
+    
+    // Skip button handler
+    document.getElementById('skipBtn').addEventListener('click', () => {
+        // Save answer as "無" (none)
+        let skipAnswer = '無';
+        if (config.type === 'checkbox') {
+            skipAnswer = ['無'];
+        } else if (config.type === 'radio') {
+            skipAnswer = '無';
+        } else if (config.type === 'number') {
+            skipAnswer = '無'; // For number type, also save as '無'
+        }
+        
+        // Save skip answer
+        userInfoData[config.key] = skipAnswer;
+        storage.saveUserInfo(userInfoData);
+        
+        // Handle special flow (e.g., if skipping 2-3, we still need to handle 2-4 skip logic)
+        if (config.key === 'diagnosisType' && skipAnswer === '無') {
+            // If skipping diagnosisType, we should still check if we need to skip 2-4
+            // But since we're skipping, we'll just move to next step normally
+        }
+        
+        // Move to next step
+        currentUserInfoStep++;
+        const nextStep = getCurrentStep();
+        
+        // Handle skip logic for 2-4 if diagnosisType was skipped
+        if (nextStep === '2-4' && userInfoData.diagnosisType === '無') {
+            // Skip 2-4 if diagnosisType is '無'
+            currentUserInfoStep++;
+            const nextNextStep = getCurrentStep();
+            if (nextNextStep) {
+                renderUserInfoQuestion(container, nextNextStep);
+            } else {
+                router.navigate('main');
+            }
+        } else if (nextStep) {
+            renderUserInfoQuestion(container, nextStep);
+        } else {
+            router.navigate('main');
+        }
+    });
+    
     // Next button handler
     document.getElementById('nextBtn').addEventListener('click', () => {
         const errorMsg = document.getElementById('errorMsg');

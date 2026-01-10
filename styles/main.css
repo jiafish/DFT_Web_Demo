@@ -48,6 +48,13 @@ body {
     z-index: 100;
     box-shadow: var(--shadow);
     transition: left 0.3s;
+    flex-shrink: 0; /* 確保 header 不會被壓縮 */
+}
+
+/* When header has home-header class, use home-header styles */
+.header.home-header {
+    height: auto;
+    min-height: var(--header-height);
 }
 
 .hamburger {
@@ -76,6 +83,26 @@ body {
     display: none; /* Removed as per requirement */
 }
 
+.header-logo {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+    pointer-events: none; /* 讓點擊事件穿透到下方元素 */
+}
+
+.header-logo img {
+    width: 100%;
+    height: 100%;
+    max-height: var(--header-height);
+    object-fit: contain;
+    pointer-events: auto; /* 恢復圖片本身的點擊事件 */
+}
+
 /* ===== Sidebar ===== */
 .sidebar {
     position: fixed;
@@ -89,19 +116,6 @@ body {
     transform: translateX(-100%);
     transition: transform 0.3s ease;
     overflow-y: auto;
-}
-
-.sidebar.open {
-    transform: translateX(0);
-}
-
-.sidebar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1rem;
-    border-bottom: 1px solid var(--border-color);
-    height: var(--header-height);
 }
 
 .logo {
@@ -119,9 +133,7 @@ body {
     padding: 0.5rem;
 }
 
-.sidebar-nav {
-    padding: 1rem 0;
-}
+
 
 .nav-item {
     display: block;
@@ -166,7 +178,7 @@ body {
 
 /* ===== Main Container ===== */
 .main-container {
-    margin-left: 0;
+    /* margin-left: 0; */
     min-height: var(--app-vh);
     transition: margin-left 0.3s;
 }
@@ -175,33 +187,66 @@ body {
 .app-shell {
     height: var(--app-vh);
     display: grid;
-    grid-template-rows: var(--header-height) 1fr auto;
+    /* 移除 grid-template-rows，讓 grid 根據內容自動調整行高 */
+    /* 這樣可以避免 footer 高度計算問題 */
+    grid-auto-rows: auto;
+    overflow: hidden; /* 確保只有 page-content 會滾動 */
 }
 
 .page-content {
     padding: 2rem;
     min-height: 0;        /* 關鍵：避免 grid item 不縮小導致無法滾 */
+    /* 當沒有 grid-template-rows 時，page-content 需要明確設置高度來佔用剩餘空間 */
+    /* 使用 calc 計算：總高度 - header 高度 - footer 高度（自動） */
+    height: calc(var(--app-vh) - var(--header-height));
     overflow-y: auto;
     overflow-x: hidden;
+    -webkit-overflow-scrolling: touch; /* iOS 平滑滾動 */
+    /* 確保內容可以滾動 */
+}
+
+/* Main page content: 只覆蓋 padding，其他樣式繼承自 .page-content */
+/* 使用更具體的選擇器確保樣式優先級 */
+.page-content.main-page-content {
+    padding: 0;
+    /* 確保滾動功能正常 - 明確覆蓋以確保優先級 */
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    min-height: 0 !important;
+    /* 不設置 height，讓 Grid 的 1fr 自動分配空間 */
 }
 
 /* Footer / Bottom Action Bar：未來放底部操作列，避免 fixed 蓋住內容 */
 .footer-bar {
-    position: sticky;
-    bottom: 0;
+    /* 移除 position: sticky，讓 grid 能正確計算高度 */
+    /* position: sticky 在 grid 中可能導致高度計算問題 */
     z-index: 60;
     background: var(--bg-color);
     border-top: 1px solid var(--border-color);
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+    flex-shrink: 0; /* 確保 footer 不會被壓縮 */
+    /* 確保 grid 能正確計算高度 */
+    align-self: end; /* 確保 footer 在 grid 底部對齊 */
+    /* 確保 footer 只根據內容計算高度，不會過高 */
+    height: auto;
+    /* 限制 footer 的最大高度，避免佔用過多空間 */
+    /* 估算：按鈕高度 ~60px + padding 0.75rem*2 + gap 0.75rem + safe-area，總共約 100-120px */
+    max-height: calc(120px + env(safe-area-inset-bottom));
+    overflow: hidden; /* 如果內容過高，隱藏溢出部分 */
+    /* 當 footer 為空時，隱藏 border 以避免視覺上的 1px 問題 */
 }
 
 .footer-bar .footer-actions {
-    padding: 1rem;
-    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    padding: 0.75rem 1rem;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
     align-items: center;
+    /* 確保 footer-actions 不會導致 footer 過高 */
+    min-height: 0;
+    height: auto;
 }
 
 .footer-bar .footer-actions .btn {
@@ -209,12 +254,18 @@ body {
     max-width: 600px;
 }
 
+/* 當 footer 為空時，隱藏 border 和 shadow，避免視覺上的 1px 問題 */
+.footer-bar:empty {
+    border-top: none;
+    box-shadow: none;
+}
+
 /* ===== Buttons ===== */
 .btn {
     padding: 0.75rem 1.5rem;
     border: none;
     border-radius: 8px;
-    font-size: 1rem;
+    font-size: 1.25rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -305,9 +356,22 @@ body.has-fixed-cta .page-content {
     margin-bottom: 1rem;
 }
 
+.card-icon {
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.card-icon img {
+    width: auto;
+    height: 60px;
+    object-fit: contain;
+}
+
 /* ===== Form Elements ===== */
 .form-group {
-    margin-bottom: 1.5rem;
+    margin: 25px;
 }
 
 .form-label {
@@ -315,6 +379,7 @@ body.has-fixed-cta .page-content {
     margin-bottom: 0.5rem;
     font-weight: 500;
     color: var(--text-color);
+    font-size: 1.25rem;
 }
 
 .form-input,
@@ -405,10 +470,27 @@ body.has-fixed-cta .page-content {
 }
 
 /* ===== Page Specific ===== */
+.btn-back-page {
+    background: none;
+    border: none;
+    font-size: 1rem;
+    color: var(--primary-color);
+    cursor: pointer;
+    padding: 0.75rem 1rem;
+    margin: 1rem 1.5rem 0;
+    display: flex;
+    align-items: center;
+    transition: opacity 0.2s;
+}
+
+.btn-back-page:hover {
+    opacity: 0.7;
+}
+
 .page-title {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     font-weight: 600;
-    margin-bottom: 1rem;
+    margin: 0.5rem 1.5rem 1.5rem;
     color: var(--primary-color);
 }
 
@@ -624,6 +706,139 @@ body.has-fixed-cta .page-content {
     opacity: 0.5;
 }
 
+/* ===== Week Calendar ===== */
+.week-calendar-container {
+    background: var(--bg-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1rem;
+    box-shadow: var(--shadow);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.week-calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.week-calendar-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.week-calendar-month-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.week-calendar-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    width: 100%;
+    position: relative;
+    touch-action: pan-x;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.week-calendar-scroll::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
+.week-calendar-days {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    min-width: max-content;
+    width: max-content;
+}
+
+.week-calendar-day {
+    min-width: 60px;
+    width: 60px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 0.5rem;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 16px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.week-calendar-day:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(29, 124, 207, 0.2);
+}
+
+.week-calendar-day.selected {
+    border-color: var(--primary-color);
+    border-width: 2px;
+    background: white;
+}
+
+.week-calendar-day.selected .week-day-number {
+    background: var(--primary-color);
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+
+.week-calendar-day.has-record {
+    background: linear-gradient(135deg, rgba(173, 216, 230, 0.3) 0%, rgba(173, 216, 230, 0.2) 100%);
+    border-color: rgba(173, 216, 230, 0.6);
+}
+
+.week-calendar-day.has-record.selected {
+    background: linear-gradient(135deg, rgba(173, 216, 230, 0.4) 0%, rgba(173, 216, 230, 0.3) 100%);
+    border-color: var(--primary-color);
+}
+
+.week-day-name {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+}
+
+.week-calendar-day.selected .week-day-name {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.week-day-number {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-color);
+    transition: all 0.3s ease;
+}
+
+.week-calendar-day.today:not(.selected) .week-day-number {
+    color: var(--primary-color);
+}
+
 /* ===== Responsive ===== */
 @media (min-width: 1024px) {
     .hamburger {
@@ -639,11 +854,7 @@ body.has-fixed-cta .page-content {
     }
 
     .header {
-        left: var(--sidebar-width);
-    }
-
-    .main-container {
-        margin-left: var(--sidebar-width);
+        left: 0;
     }
 
     .overlay {
@@ -660,24 +871,28 @@ body.has-fixed-cta .page-content {
 }
 
 @media (max-width: 1023px) {
-    .hamburger {
-        display: flex;
+    .week-calendar-container {
+        padding: 1rem;
+        margin: 0.5rem;
     }
 
-    .sidebar {
-        transform: translateX(-100%);
+    .week-calendar-day {
+        min-width: 55px;
+        width: 55px;
+        padding: 0.5rem 0.25rem;
     }
 
-    .sidebar.open {
-        transform: translateX(0);
+    .week-day-name {
+        font-size: 0.7rem;
     }
 
-    .sidebar-header .close-btn {
-        display: block;
+    .week-day-number {
+        font-size: 1rem;
     }
 
-    .main-container {
-        margin-left: 0;
+    .week-calendar-day.selected .week-day-number {
+        width: 28px;
+        height: 28px;
     }
 
     .page-content {
@@ -686,6 +901,56 @@ body.has-fixed-cta .page-content {
 
     .modal-content {
         max-height: 85vh;
+    }
+}
+
+@media (max-width: 480px) {
+    .week-calendar-container {
+        padding: 0.75rem;
+        margin: 0.5rem;
+    }
+
+    .week-calendar-day {
+        min-width: 50px;
+        width: 50px;
+        padding: 0.5rem 0.2rem;
+    }
+
+    .week-day-name {
+        font-size: 0.65rem;
+    }
+
+    .week-day-number {
+        font-size: 0.9rem;
+    }
+
+    .week-calendar-day.selected .week-day-number {
+        width: 24px;
+        height: 24px;
+        font-size: 0.9rem;
+    }
+
+    .week-calendar-header {
+        font-size: 0.9rem;
+    }
+
+    .week-calendar-title {
+        font-size: 1rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .week-calendar-day {
+        min-width: 70px;
+        width: 70px;
+    }
+
+    .week-calendar-scroll {
+        cursor: grab;
+    }
+
+    .week-calendar-scroll:active {
+        cursor: grabbing;
     }
 }
 
@@ -703,5 +968,358 @@ body.has-fixed-cta .page-content {
 
 .hidden {
     display: none;
+}
+
+/* ===== Progress Bar ===== */
+.progress-bar-container {
+    margin-bottom: 2rem;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background-color: #E0E0E0;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 0.875rem;
+    color: var(--text-light);
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+/* ===== Home Page Styles ===== */
+.home {
+    width: 100%;
+    /* 移除固定 min-height，讓內容自然延伸以觸發滾動 */
+}
+
+/* Home Header */
+.home-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 2rem;
+    background: var(--bg-color);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow);
+}
+
+.home-header__logo {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.home-header__logo img {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+}
+
+.home-header__nav {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.home-tab {
+    background: transparent;
+    border: none;
+    padding: 1rem 1.5rem;
+    color: var(--text-color);
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    position: relative;
+}
+
+.home-tab:hover {
+    color: var(--primary-color);
+    background: rgba(29, 124, 207, 0.05);
+}
+
+.home-tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Dropdown */
+.home-dropdown {
+    position: relative;
+}
+
+.home-dropdown__menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    min-width: 180px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s;
+    z-index: 200;
+    margin-top: 4px;
+}
+
+.home-dropdown__menu.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.home-dropdown__item {
+    display: block;
+    padding: 0.75rem 1.5rem;
+    color: var(--text-color);
+    text-decoration: none;
+    transition: background 0.2s;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.home-dropdown__item:last-child {
+    border-bottom: none;
+}
+
+.home-dropdown__item:hover {
+    background: rgba(29, 124, 207, 0.1);
+    color: var(--primary-color);
+}
+
+/* Hero Banner */
+.home-hero {
+    position: relative;
+    min-height: 500px;
+    background-image: url('IMG/Banner.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: flex;
+    align-items: center;
+    padding: 4rem 2rem;
+}
+
+.home-hero__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to right, #B9E6F9 0%, rgba(185, 230, 249, 0) 60%);
+    z-index: 1;
+}
+
+.home-hero__content {
+    position: relative;
+    z-index: 2;
+    max-width: 600px;
+    padding-left: 2rem;
+}
+
+.home-hero__title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 2rem;
+    line-height: 1.3;
+}
+
+.home-hero__cta {
+    display: inline-block;
+}
+
+/* Sections */
+.home-section {
+    padding: 4rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.home-section__title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 1.5rem;
+}
+
+/* About Section */
+.home-about__content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: center;
+}
+
+.home-about__text {
+    order: 1;
+}
+
+.home-about__image {
+    order: 2;
+}
+
+.home-about__image img,
+.home-about__image > div {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.home-about__image > div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-light);
+    font-size: 0.875rem;
+}
+
+/* Features Section */
+.home-features__image {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.home-features__image img,
+.home-features__image > div {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.home-features__image > div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-light);
+    font-size: 0.875rem;
+}
+
+/* Actions Section */
+.home-actions {
+    padding: 4rem 2rem;
+}
+
+.home-actions__grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.home-action-card {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 200px;
+}
+
+/* Action card sizes are handled by grid layout */
+
+.home-action-card__title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 1rem;
+}
+
+.home-action-card__desc {
+    font-size: 1rem;
+    color: var(--text-light);
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.home-action-card__btn {
+    align-self: flex-start;
+    margin-top: auto;
+}
+
+/* Responsive */
+@media (max-width: 1023px) {
+    .home-header {
+        padding: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .home-header__nav {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .home-tab {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+    }
+
+    .home-hero {
+        min-height: 400px;
+        padding: 2rem 1rem;
+    }
+
+    .home-hero__content {
+        padding-left: 0;
+    }
+
+    .home-hero__title {
+        font-size: 1.75rem;
+    }
+
+    .home-section {
+        padding: 2rem 1rem;
+    }
+
+    .home-about__content {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .home-about__text {
+        order: 1;
+    }
+
+    .home-about__image {
+        order: 2;
+    }
+
+    .home-actions__grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .home-action-card {
+        width: 100%;
+    }
 }
 

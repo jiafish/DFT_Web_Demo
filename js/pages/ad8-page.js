@@ -19,7 +19,35 @@ let ad8FromMain = false; // Track if AD8 was accessed from Main
 function setFooterActions(html) {
     const footer = document.querySelector('.footer-bar');
     if (!footer) return;
+    // #region agent log
+    const beforeHeight = footer.offsetHeight;
+    const beforeScrollHeight = footer.scrollHeight;
+    const appShell = footer.closest('.app-shell');
+    const appShellHeight = appShell ? appShell.offsetHeight : 0;
+    const gridRows = appShell ? window.getComputedStyle(appShell).gridTemplateRows : '';
+    fetch('http://127.0.0.1:7242/ingest/fa9f83e4-bdca-4ac2-a70b-4bdeece900bc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ad8-page.js:setFooterActions',message:'Before setting footer HTML',data:{beforeHeight,beforeScrollHeight,appShellHeight,gridRows,footerPosition:window.getComputedStyle(footer).position,footerBottom:window.getComputedStyle(footer).bottom},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     footer.innerHTML = `<div class="footer-actions">${html}</div>`;
+    // 強制觸發瀏覽器重新計算 grid layout
+    if (appShell) {
+        void appShell.offsetHeight; // 觸發 reflow，強制重新計算 grid
+    }
+    // #region agent log
+    setTimeout(() => {
+        const afterHeight = footer.offsetHeight;
+        const afterScrollHeight = footer.scrollHeight;
+        const footerActions = footer.querySelector('.footer-actions');
+        const actionsHeight = footerActions ? footerActions.offsetHeight : 0;
+        const actionsScrollHeight = footerActions ? footerActions.scrollHeight : 0;
+        const actionsComputed = footerActions ? window.getComputedStyle(footerActions) : null;
+        const footerComputed = window.getComputedStyle(footer);
+        const gridRowsAfter = appShell ? window.getComputedStyle(appShell).gridTemplateRows : '';
+        const pageContent = document.getElementById('pageContent');
+        const pageContentHeight = pageContent ? pageContent.offsetHeight : 0;
+        const viewportHeight = window.innerHeight;
+        fetch('http://127.0.0.1:7242/ingest/fa9f83e4-bdca-4ac2-a70b-4bdeece900bc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ad8-page.js:setFooterActions',message:'After setting footer HTML - detailed',data:{afterHeight,afterScrollHeight,actionsHeight,actionsScrollHeight,heightChange:afterHeight-beforeHeight,gridRowsAfter,pageContentHeight,viewportHeight,actionsPadding:actionsComputed?.padding,actionsPaddingBottom:actionsComputed?.paddingBottom,actionsGap:actionsComputed?.gap,footerMinHeight:footerComputed.minHeight,footerHeight:footerComputed.height},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+    }, 100);
+    // #endregion
 }
 
 function clearFooterActions() {
